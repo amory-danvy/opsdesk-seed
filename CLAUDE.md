@@ -90,3 +90,25 @@ réunies :
 5. **Environnement reproductible** — installation via `npm ci` sur Node 20–22,
    `package-lock.json` conservé.
 6. **CI verte** — le workflow GitHub Actions passe sur la PR.
+
+## Bibliothèque de prompts (J2)
+
+Slash-commands disponibles dans `.claude/commands/` :
+- `/classer-ticket <texte>` : classification JSON ; doit valider `src/classification/schema.ts`.
+- `/rediger-reponse <id_ou_texte>` : brouillon de réponse client ; **relecture humaine avant envoi**.
+- `/resumer-tickets` : synthèse des tickets ouverts (liste + compteur par catégorie).
+
+Règle : toute classification produite par un agent doit passer dans
+`parseClassification()` (`src/classification/parse.ts`) avant d'être utilisée.
+Toute sortie non conforme au schéma est **rejetée**, jamais réparée à la main.
+Convention de nommage des prompts : voir `prompts/README.md`.
+
+## Gouvernance : hook anti-secret (J2)
+
+Un hook `PreToolUse` (`.claude/settings.json` → `scripts/guard-commit.sh`) bloque
+mécaniquement tout `git commit` dont le contenu stagé contient un secret
+(motif `opsdesk_live_`, clés AWS, clés privées, `password=`) ou un `.env`
+non-example. **La détection est déterministe (regex/scan), pas un jugement du
+modèle** — le modèle peut aider à écrire la regex, c'est le script qui décide.
+Limite : ne couvre que les commits passant par Claude Code. Preuve de blocage :
+`docs/preuves/j2-hook-blocage.txt`.
