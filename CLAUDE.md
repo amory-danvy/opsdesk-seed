@@ -161,3 +161,20 @@ verdict] → merge`. Définitions d'agents : `.claude/agents/{planner,builder,re
 (et `.pi/agents/` pour la séquence pi.dev, cf. `agent-chain.yaml`). **Le verdict
 d'un agent ne remplace jamais l'exécution des tests** ; chaque jonction est un
 point de contrôle humain tracé.
+
+## Revue agentique en CI/CD — J5
+
+Workflow `.github/workflows/revue-agentique.yml` : à chaque PR, un agent publie
+une revue (prompt versionné `.github/agent/revue-pr.md`, scripts
+`scripts/revue-agent.mjs` + `scripts/publier-verdict.mjs`). **L'agent ne merge
+jamais** : branch protection + approbation humaine (1). `ANTHROPIC_API_KEY` vit
+en **Actions secret**, jamais dans un fichier.
+
+Gabarit réutilisable « **upsert + court-circuit + job summary** » :
+- **Idempotence** : un marqueur caché `<!-- opsdesk-revue-agent -->` identifie LE
+  commentaire de l'agent → deux pushes = un seul commentaire mis à jour.
+- **Court-circuit** : si le diff ne touche que de la doc, la revue coûteuse est sautée.
+- **Job summary** : verdict + nb findings + durée dans `$GITHUB_STEP_SUMMARY`.
+
+Relance manuelle : **Actions → Re-run failed jobs**. Grâce à l'upsert, une relance
+ne duplique pas le commentaire. Décision d'architecture : `docs/decisions/adr-001-mise-en-prod.md`.

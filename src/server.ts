@@ -76,6 +76,17 @@ export function buildApp(database?: DB): FastifyInstance {
     },
   );
 
+  // Ferme un ticket. NOTE : route ajoutée volontairement SANS test (défaut
+  // planté pour la démo de revue agentique J5 — l'agent doit la signaler).
+  app.post<{ Params: { id: string } }>("/tickets/:id/close", async (request, reply) => {
+    const id = Number(request.params.id);
+    const updated = updateTicketStatus(id, "closed", database);
+    if (!updated) {
+      return reply.code(404).send({ error: "ticket not found" });
+    }
+    return getTicket(id, database);
+  });
+
   // Met à jour le statut d'un ticket.
   app.post<{ Params: { id: string }; Body: { status?: string } }>(
     "/tickets/:id/status",
