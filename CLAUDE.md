@@ -112,3 +112,25 @@ non-example. **La détection est déterministe (regex/scan), pas un jugement du
 modèle** — le modèle peut aider à écrire la regex, c'est le script qui décide.
 Limite : ne couvre que les commits passant par Claude Code. Preuve de blocage :
 `docs/preuves/j2-hook-blocage.txt`.
+
+## Carte du contexte (où vit quoi) — J3
+
+- **Session** (volatile) : la tâche en cours, le prompt courant.
+- **Mémoire projet** (persistante, versionnée) : `CLAUDE.md` + `.claude/memory/*.md`.
+- **État de tâche** (semi-persistant, sur disque) : `plans/*.md`, `TODO.md`, `journal/`.
+
+Détail du rangement des informations : `docs/contexte-rangement.md`.
+
+## Tâches récurrentes — J3
+
+Conventions de traitement des tickets (ton, catégories, relecture) :
+`.claude/memory/reponses-tickets.md`. Pattern d'idempotence des scripts en lot :
+`.claude/memory/idempotence.md`.
+
+## Règle : planifier avant de coder — J3
+
+Pour toute tâche multi-étapes : **écrire un plan dans `plans/<nom>.md` (objectif,
+étapes, fichiers touchés, tests, risques) et le faire relire AVANT d'écrire du
+code applicatif**. Générer `TODO.md` depuis le plan, journaliser chaque étape
+(résultat + test vert/rouge) dans `journal/<date>.md`. Les scripts qui écrivent
+en base sont **idempotents** (rejouables sans doublon, reprise après crash).
