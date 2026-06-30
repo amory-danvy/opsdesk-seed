@@ -134,3 +134,30 @@ Pour toute tâche multi-étapes : **écrire un plan dans `plans/<nom>.md` (objec
 code applicatif**. Générer `TODO.md` depuis le plan, journaliser chaque étape
 (résultat + test vert/rouge) dans `journal/<date>.md`. Les scripts qui écrivent
 en base sont **idempotents** (rejouables sans doublon, reprise après crash).
+
+## Outils & contrats — J4
+
+Un **outil** exposé à l'agent = **nom verbe-objet** + **description quand / quand
+pas** + **schéma typé** + **erreurs en résultat** (jamais d'exception qui casse le
+flux ; ex. corps vide → `{ erreur: ... }`). Référence : `tools/classifier-ticket.mjs`
+(+ `tools/run-classifier.mjs`, test `tools/classifier-ticket.test.mjs`).
+
+## Accès base via MCP — J4
+
+Tout accès à la table `tickets` par un agent passe par le **serveur MCP** `tickets`
+(`mcp/tickets-server.mjs`) : 3 outils seulement (`list_tickets`, `get_ticket`,
+`update_ticket_status`), **requêtes paramétrées**, **aucun** `run_query`/`execute_sql`.
+Brancher en une ligne :
+
+```
+claude mcp add tickets -- node "$(pwd)/mcp/tickets-server.mjs"
+claude mcp list   # attendu : tickets ✓ connected
+```
+
+## Workflow d'orchestration — J4
+
+`feature → planner → [valider plan] → builder → [tests verts] → reviewer → [lire
+verdict] → merge`. Définitions d'agents : `.claude/agents/{planner,builder,reviewer}.md`
+(et `.pi/agents/` pour la séquence pi.dev, cf. `agent-chain.yaml`). **Le verdict
+d'un agent ne remplace jamais l'exécution des tests** ; chaque jonction est un
+point de contrôle humain tracé.

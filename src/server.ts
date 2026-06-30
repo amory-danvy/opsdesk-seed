@@ -37,6 +37,17 @@ export function buildApp(database?: DB): FastifyInstance {
     return listTickets(database);
   });
 
+  // Compteurs par statut (réutilise listTickets, aucun nouveau SQL).
+  app.get("/tickets/stats", async () => {
+    const stats = { open: 0, in_progress: 0, closed: 0 };
+    for (const t of listTickets(database)) {
+      if (t.status === "open") stats.open++;
+      else if (t.status === "in_progress") stats.in_progress++;
+      else if (t.status === "closed") stats.closed++;
+    }
+    return stats;
+  });
+
   // Retourne un ticket par identifiant.
   app.get<{ Params: { id: string } }>("/tickets/:id", async (request, reply) => {
     const id = Number(request.params.id);

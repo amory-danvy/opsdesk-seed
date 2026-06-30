@@ -1,0 +1,24 @@
+# Chaîne pi.dev — pipeline planner → builder → reviewer (lecture, Lab 5).
+# Même pattern « Chain » que le pipeline Claude Code, exprimé dans pi.dev.
+# $ORIGINAL = la demande initiale ; $INPUT = la sortie de l'étape précédente.
+name: opsdesk-feature-chain
+description: Fait passer une feature OpsDesk par planner, builder puis reviewer.
+
+steps:
+  - id: plan
+    agent: .pi/agents/planner.md      # rôle planner (défini au Lab 3)
+    input: $ORIGINAL                  # la demande de feature
+    output: plans/feature.plan.md
+
+  - id: build
+    agent: .pi/agents/builder.md      # rôle builder
+    input: $INPUT                     # le plan validé issu de l'étape 'plan'
+    output: src/                      # code + test
+
+  - id: review
+    agent: .pi/agents/reviewer.md     # rôle reviewer
+    input: $INPUT                     # le diff + le plan
+    output: reviews/feature.review.md
+
+# Note : l'orchestration vient d'une EXTENSION (pi-chains), pas du cœur de pi.dev
+# (4 outils + boucle). Séquentiel + état-en-fichiers = observable et gouvernable.
