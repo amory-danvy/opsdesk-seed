@@ -1,0 +1,63 @@
+name: revue-agentique
+
+# Revue agentique de PR : un agent commente, il ne merge JAMAIS.
+# Le merge reste gouverné par la branch protection (approbation humaine requise).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write   # pour publier le commentaire (jamais de merge)
+
+jobs:
+  revue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # diff base...head
+
+      # Court-circuit : si le diff ne touche QUE de la doc, on saute la revue coûteuse.
+      - name: Détecter diff tout-docs
+        id: scope
+        run: |
+          CHANGED="$(git diff --name-only origin/${{ github.base_ref }}...HEAD)"
+          if echo "$CHANGED" | grep -qvE '\.(md|txt)$'; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Diff tout-docs : revue agentique sautée." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.scope.outputs.skip == 'false'
+        with:
+          node-version: 22
+      - run: npm ci
+        if: steps.scope.outputs.skip == 'false'
+
+      - name: Revue agentique
+        if: steps.scope.outputs.skip == 'false'
+        id: revue
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # secret Actions, jamais commité
+          BASE_SHA: origin/${{ github.base_ref }}
+          HEAD_SHA: HEAD
+        run: |
+          START=$(date +%s)
+          node scripts/revue-agent.mjs > verdict.json
+          echo "duree=$(( $(date +%s) - START ))" >> "$GITHUB_OUTPUT"
+
+      - name: Publier le verdict (upsert)
+        if: steps.scope.outputs.skip == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          node scripts/publier-verdict.mjs "$(cat verdict.json)"
+          VERDICT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('verdict.json','utf8')).verdict)")
+          NB=$(node -e "console.log(JSON.parse(require('fs').readFileSync('verdict.json','utf8')).findings.length)")
+          echo "Verdict : **$VERDICT** — $NB finding(s) — ${{ steps.revue.outputs.duree }}s" >> "$GITHUB_STEP_SUMMARY"
