@@ -1,5 +1,6 @@
 // Schéma de classification d'un ticket OpsDesk.
 // Source de vérité partagée par tout le projet (prompt, parseur, tests, outils MCP).
+// Toute sortie non conforme est rejetée par le validateur, jamais réparée à la main.
 import { z } from "zod";
 
 // Énumération fermée des catégories (alignée sur les valeurs du seed).
