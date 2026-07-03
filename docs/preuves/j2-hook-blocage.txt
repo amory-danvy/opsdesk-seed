@@ -1,0 +1,19 @@
+# Preuve de blocage — hook PreToolUse guard-commit.sh
+# Capturé le 2026-06-30T09:58:03Z (UTC)
+
+== Test 1 : blocage attendu ==
+Fichier stagé tmp-secret.ts contenant :
+    OPSDESK_API_KEY = "opsdesk_live_DEMOkeyNOTREAL0000"
+Entrée hook (stdin) : {"tool_name":"Bash","tool_input":{"command":"git commit -m test"}}
+Sortie console (stderr) : BLOQUÉ : secret potentiel détecté dans le commit.
+Code de sortie : 2   -> l'outil Bash est bloqué, le commit n'a pas lieu.
+
+== Test 2 : passage attendu ==
+Secret retiré (tmp-secret.ts supprimé), fichier propre tmp-clean.ts stagé.
+Sortie console : (vide)
+Code de sortie : 0   -> le hook laisse passer.
+
+== Invariant respecté ==
+src/config.ts (seedé) NON modifié ; le test utilise une valeur bidon dans un
+fichier temporaire, jamais un vrai secret. État final : aucun fichier temporaire,
+aucun secret ajouté au dépôt.
